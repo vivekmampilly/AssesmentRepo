@@ -84,8 +84,7 @@ public class CarPropertyHelper {
             try {
                 mCarPropertyManager.registerCallback(
                         mSpeedCallback,
-                        CarProperty.VEHICLE_SPEED,
-                        CarProperty.SENSOR_RATE_NORMAL); // Or other appropriate sensor rate
+                        CarProperty.VEHICLE_SPEED); 
 
             } catch (IllegalArgumentException | IllegalStateException | CarNotConnectedException e) {
                 Log.e("SpeedReader", "Error registering for speed updates");
