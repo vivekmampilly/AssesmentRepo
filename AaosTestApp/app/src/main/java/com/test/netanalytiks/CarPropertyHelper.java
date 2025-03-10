@@ -27,12 +27,17 @@ public class CarPropertyHelper {
     private final String MAX_SPEED_VIO = "speed_violation";
     private String mVinNo = "";
 
-    //Callback to listen for car speed change
+    /**
+     * Callback to listen for car speed change
+     */
     private final CarPropertyManager.PropertyCallback<Float> mSpeedCallback = new CarPropertyManager.PropertyCallback<Float>() {
         @Override
         public void onChangeEvent(CarPropertyValue<Float> value) {
             if (value != null) {
                 float speed = value.getValue();
+
+                dataCallbackInterface.onSpeedChanged(speed); // Sends current speed to CarDataViewModel to update UI
+
                 if (speed > mMaxSpeed) {
                     updateCarOverSpeed(speed);
                     showWarningPopup(speed);
@@ -52,6 +57,8 @@ public class CarPropertyHelper {
     private final FirebaseDatabase mDatabase = FirebaseDatabase.getInstance();
     private final DatabaseReference mDatabaseRef = mDatabase.getReference();
 
+    private CarDataCallbackInterface dataCallbackInterface;
+
     private float mMaxSpeed = 0;
 
     private CarPropertyHelper() {
@@ -65,11 +72,11 @@ public class CarPropertyHelper {
         return carPropertyHelper;
     }
 
-    /*
-    This method initialises Car object which will be used to get Car telemetry data
-    To get seed data declare the necessary permissions in your AndroidManifest.xml file.
-    in this case <uses-permission android:name="android.car.permission.CAR_SPEED" />
-     */
+    /**
+    * This method initialises Car object which will be used to get Car telemetry data
+    * To get seed data declare the necessary permissions in your AndroidManifest.xml file.
+    * in this case <uses-permission android:name="android.car.permission.CAR_SPEED" />
+     * */
     public void init(Context context) {
         mContext = context;
         mCar = new Car(mContext); // 'this' is your Context
@@ -97,9 +104,19 @@ public class CarPropertyHelper {
         mMaxSpeed = getMaxSpeedForCar(mVinNo);
     }
 
-    /*
-    It is assumed that each car data is arranged in firebase with VIN NO of each car.
-    So by using this method we are getting Cars VIN NO.
+    /**
+    * Callback to update UI
+     */
+    public void setCarDataCallback(CarDataCallbackInterface callback) {
+        dataCallbackInterface = callback;
+
+        //Sends Maximum speed limit value to CarDataViewModel to update UI
+        dataCallbackInterface.onMaxSpeedSet((int) getMaxSpeedForCar(mVinNo));
+    }
+
+    /**
+    * It is assumed that each car data is arranged in firebase with VIN NO of each car.
+    * So by using this method we are getting Cars VIN NO.
      */
     private String getVinNo() {
         CarPropertyValue<String> vinValue = null;
@@ -127,10 +144,10 @@ public class CarPropertyHelper {
         return vinValue.getValue();
     }
 
-    /*
-    Method to get max speed set by Company.
-    It is assumed that from another application car rental company sets max speed for each vehicle.
-    Vehicle is identified by car rental company using VIN NO.
+    /**
+    * Method to get max speed set by Company.
+    * It is assumed that from another application car rental company sets max speed for each vehicle.
+    * Vehicle is identified by car rental company using VIN NO.
      */
     private float getMaxSpeedForCar(String vinno) {
         final int[] maxspeed = {0};
@@ -149,16 +166,16 @@ public class CarPropertyHelper {
         return maxspeed[0];
     }
 
-    /*
-    Just shows a Toast as warning. We can also implement a popup here.
+    /**
+    * Just shows a Toast as warning. We can also implement a popup here.
      */
     private void showWarningPopup(float speed) {
         Toast.makeText(mContext, "Max Speed Limit Exceeded. Max Speed is " + speed , Toast.LENGTH_SHORT).show();
     }
 
-    /*
-    When max speed is exceeded, that value is updated in firebase. It is assumed that "speed_violation" node is
-    actively monitored by another application to notify violation to Car rental company.
+    /**
+    * When max speed is exceeded, that value is updated in firebase. It is assumed that "speed_violation" node is
+    * actively monitored by another application to notify violation to Car rental company.
      */
     private void updateCarOverSpeed(float speed) {
         mDatabaseRef.child(CAR_ROOT).child(mVinNo).child(MAX_SPEED_VIO).push().setValue(speed);
